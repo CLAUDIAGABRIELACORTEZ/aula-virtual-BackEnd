@@ -50,9 +50,6 @@ class AlumnoDetailSerializer(serializers.ModelSerializer):
             return MateriaSerializer(obj.curso.materias.all(), many=True).data
         return []
 
-
-
-
 class AlumnoCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Alumno

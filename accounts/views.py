@@ -23,6 +23,7 @@ class UserViewSet(viewsets.ModelViewSet):
         if self.action == 'create':
             return []  # Permitir crear usuarios sin autenticación
         return [IsAuthenticated(), IsDirector()]
+    
 class CustomTokenView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 

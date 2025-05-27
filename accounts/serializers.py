@@ -2,6 +2,11 @@
 from rest_framework import serializers
 from .models import CustomUser
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
+#Nuevo de Rodrigo
+from students.models import Alumno
+from core.models import Materia
+
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)  # 👈 añadir explícitamente
 
@@ -35,4 +40,19 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         data['username'] = self.user.username
         data['email'] = self.user.email
 
+        # Si es alumno, agregar curso y materias
+        try:
+            alumno = Alumno.objects.select_related('curso').get(user=self.user)
+            data['curso'] = {
+                "id": alumno.curso.id,
+                "nombre": alumno.curso.nombre,
+                "nivel": alumno.curso.nivel
+            }
+
+            materias = alumno.curso.materias.all()
+            data['materias'] = [{"id": m.id, "nombre": m.nombre} for m in materias]
+        except Alumno.DoesNotExist:
+            pass
+
         return data
+ 

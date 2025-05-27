@@ -6,6 +6,13 @@ class Curso(models.Model):
     nombre = models.CharField(max_length=50)
     nivel = models.CharField(max_length=20)  # Ej: primaria, secundaria
 
+    #Cambios aqui por Rodrigo
+    materias = models.ManyToManyField(
+        'Materia',
+        through='CursoMateria',
+        related_name='cursos'
+    )
+
     def __str__(self):
         return f"{self.nombre} - {self.nivel}"
 
@@ -14,6 +21,7 @@ class Materia(models.Model):
 
     def __str__(self):
         return self.nombre
+    
 class CursoMateria(models.Model):
     curso = models.ForeignKey(Curso, on_delete=models.CASCADE, related_name="materias_asociadas")
     materia = models.ForeignKey(Materia, on_delete=models.CASCADE, related_name="cursos_asociados")
