@@ -65,3 +65,11 @@ class AlumnoCreateSerializer(serializers.ModelSerializer):
         # alumno.materias.set(todas_las_materias)
 
         return alumno
+
+class AlumnoSerializer(serializers.ModelSerializer):
+    nombre = serializers.CharField(source="user.nombre")
+
+
+    class Meta:
+        model = Alumno
+        fields = ["id", "nombre"]

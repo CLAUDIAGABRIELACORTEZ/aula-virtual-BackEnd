@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'students',
     'teachers',
     'core',
+    'notas',
 ]
 
 MIDDLEWARE = [
@@ -57,6 +58,7 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
     'content-type',
 ]
 
+CORS_ALLOW_METHODS = ["DELETE", "GET", "OPTIONS", "PATCH", "POST", "PUT"]
 ROOT_URLCONF = 'aula_virtual.urls'
 
 TEMPLATES = [
