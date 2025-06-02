@@ -1,11 +1,15 @@
 asgiref==3.8.1
 Django==5.2.1
 django-cors-headers==4.7.0
+django-seed @ git+https://github.com/Brobin/django-seed.git@077398a2c2a533b07517b121b34713a2e43bcc63
 djangorestframework==3.16.0
 djangorestframework_simplejwt==5.5.0
 Faker==37.3.0
+joblib==1.5.1
 psycopg2-binary==2.9.10
 PyJWT==2.9.0
 python-dotenv==1.1.0
+setuptools==80.9.0
 sqlparse==0.5.3
+toposort==1.10
 tzdata==2025.2

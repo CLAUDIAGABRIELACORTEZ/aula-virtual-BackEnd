@@ -1,25 +1,19 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from accounts.permissions import IsDocente
-from .models import EvaluacionActividad, NotaActividad, Autoevaluacion
-from .serializers import EvaluacionActividadSerializer, NotaActividadSerializer, AutoevaluacionSerializer
+from .models import EvaluacionActividad, NotaActividad, Autoevaluacion, Materia
+from .serializers import EvaluacionActividadSerializer, NotaActividadSerializer, AutoevaluacionSerializer,  PrediccionInputSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from accounts.models import CustomUser
-from students.models import Alumno
+from students.models import Alumno 
 from students.serializers import AlumnoSerializer
 from core.models import CursoMateriaDocente
 from rest_framework import permissions
 from rest_framework import status
 
-
-# class EvaluacionActividadViewSet(viewsets.ModelViewSet):
-#     queryset = EvaluacionActividad.objects.all()
-#     serializer_class = EvaluacionActividadSerializer
-#     permission_classes = [IsAuthenticated, IsDocente]
-
-#     def perform_create(self, serializer):
-#         serializer.save(docente=self.request.user)  # Asigna el docente automáticamente
+from .services import get_model
+from .utils import nota_trimestre
 
 class EvaluacionActividadViewSet(viewsets.ModelViewSet):
     queryset = EvaluacionActividad.objects.all()
@@ -63,30 +57,12 @@ class NotaActividadViewSet(viewsets.ModelViewSet):
 
         return super().create(request, *args, **kwargs)
 
-# class AutoevaluacionViewSet(viewsets.ModelViewSet):
-#     queryset = Autoevaluacion.objects.all()
-#     serializer_class = AutoevaluacionSerializer
-#     permission_classes = [IsAuthenticated, IsDocente]
+
 class AutoevaluacionViewSet(viewsets.ModelViewSet):
     queryset = Autoevaluacion.objects.all()
     serializer_class = AutoevaluacionSerializer
     permission_classes = [IsAuthenticated, IsDocente]
 
-    # def get_queryset(self):
-    #     curso_id = self.request.query_params.get("curso")
-    #     materia_id = self.request.query_params.get("materia")
-    #     trimestre = self.request.query_params.get("trimestre")
-
-    #     queryset = Autoevaluacion.objects.all()
-
-    #     if curso_id:
-    #         queryset = queryset.filter(curso_id=curso_id)
-    #     if materia_id:
-    #         queryset = queryset.filter(materia_id=materia_id)
-    #     if trimestre:
-    #         queryset = queryset.filter(trimestre=trimestre)
-
-    #     return queryset
     def create(self, request, *args, **kwargs):
         data = request.data
         alumno = data.get("alumno")
@@ -181,121 +157,74 @@ class CuadriculaNotasView(APIView):
 
         return Response(resultado)
 
+# nuevo enpoint para la parte de prediccion de notas
 
-#  resumen de notas 
-class ResumenNotasView(APIView):
-    permission_classes = [IsAuthenticated, IsDocente]
+UMBRAL = 51  # ajusta según tu escala
 
-    def get(self, request):
-        curso_id = request.query_params.get("curso")
-        materia_id = request.query_params.get("materia")
-        trimestre = request.query_params.get("trimestre")
-
-        if not all([curso_id, materia_id, trimestre]):
-            return Response({"error": "Faltan parámetros: curso, materia y trimestre son obligatorios."}, status=400)
-
-        alumnos = CustomUser.objects.filter(rol='alumno')
-        dimensiones = {'ser': 5, 'saber': 45, 'hacer': 40, 'decidir': 5}
-        resultados = []
-
-        for alumno in alumnos:
-            resumen = {"alumno": f"{alumno.nombre} {alumno.apellido}"}
-            total = 0
-
-            for dim, max_valor in dimensiones.items():
-                actividades = EvaluacionActividad.objects.filter(
-                    curso_id=curso_id, materia_id=materia_id,
-                    docente=request.user, trimestre=trimestre,
-                    dimension=dim
-                )
-                notas = NotaActividad.objects.filter(evaluacion__in=actividades, alumno=alumno)
-
-                if notas.exists():
-                    promedio = sum(n.nota for n in notas) / notas.count()
-                else:
-                    promedio = 0
-
-                resumen[dim] = round(promedio, 1)
-                total += promedio
-
-            # Autoevaluación
-            autoeval = Autoevaluacion.objects.filter(
-                curso_id=curso_id, materia_id=materia_id,
-                alumno=alumno, trimestre=trimestre
-            ).first()
-            autoeval_nota = autoeval.nota if autoeval else 0
-            resumen["autoevaluacion"] = autoeval_nota
-            total += autoeval_nota
-
-            resumen["total"] = round(total, 1)
-
-            # Clasificación
-            if total <= 50:
-                resumen["clasificacion"] = "Aplazado"
-            elif total <= 60:
-                resumen["clasificacion"] = "Aprobado"
-            elif total <= 70:
-                resumen["clasificacion"] = "Bueno"
-            elif total <= 89:
-                resumen["clasificacion"] = "Muy Bueno"
-            else:
-                resumen["clasificacion"] = "Excelente"
-
-            resultados.append(resumen)
-
-        return Response(resultados)
-
-# Modificaciones de Rodrigo
-class NotasPorMateriaAlumnoView(APIView):
+class PrediccionTrim3View(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, materia_id):
-        alumno = request.user
-        if (alumno.rol != 'alumno'):
-            return Response({'error: No Autorizado'}, status=403)
-        
+    def post(self, request):
+        serializer = PrediccionInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        alumno_id  = serializer.validated_data["alumno"]   # ahora interpreta que es Alumno.id
+        # curso_id   = serializer.validated_data["curso"]
+        materia_id = serializer.validated_data["materia"]
+
+        # 1. Intentamos obtener el registro de Alumno, no CustomUser
         try:
-            curso = alumno.alumno.curso
-        except:
-            return Response({'error: No tienes curso asignado'}, status=400)
-        
-        evaluaciones = EvaluacionActividad.objects.filter(
-            curso = curso,
-            materia_id = materia_id
-        ).order_by('trimestre', 'dimension', 'fecha')
+            alumno_instancia = Alumno.objects.select_related("user", "curso").get(id=alumno_id)
+        except Alumno.DoesNotExist:
+            return Response(
+                {"error": f"El alumno con id={alumno_id} no existe como instancia Alumno."},
+                status=400
+            )
 
-        notas = NotaActividad.objects.filter(
-            alumno = alumno,
-            evaluacion_in = evaluaciones
-        )
+        # 2. Ahora, del modelo Alumno sacamos el CustomUser y el Curso
+        usuario = alumno_instancia.user      # CustomUser asociado (debe tener rol="alumno")
+        curso   = alumno_instancia.curso     # Curso asociado al Alumno
 
-        autoevals = Autoevaluacion.objects.filter(
-            alumno = alumno, 
-            curso = curso,
-            materia_id = materia_id
-        )
+        # 3. Verificamos que exista la Materia
+        try:
+            materia = Materia.objects.get(id=materia_id)
+        except Materia.DoesNotExist:
+            return Response(
+                {"error": f"La materia con id={materia_id} no existe."},
+                status=400
+            )
 
-        resultado = {
-            "materia": evaluaciones.first().materia.nombre if evaluaciones.exists() else "",
-            "notas": {},
-            "autoevaluaciones": {}
-        }
+        # 4. Calculamos notas T1 y T2 con la función utilitaria
+        #    nota_trimestre espera (usuario=CustomUser, curso=Curso, materia=Materia, trimestre="1er"/"2do"/"3er")
+        n1 = nota_trimestre(usuario, curso, materia, "1er Trimestre")
+        n2 = nota_trimestre(usuario, curso, materia, "2do Trimestre")
 
-        for ev in evaluaciones:
-            trimestre = ev.trimestre
-            if trimestre not in resultado["notas"]:
-                resultado["notas"][trimestre]
+        # 5. Cargamos el modelo entrenado
+        try:
+            model = get_model()
+        except FileNotFoundError:
+            return Response(
+                {"error": "El modelo predictivo no está disponible. Ejecuta retrain_trim3 primero."},
+                status=503
+            )
 
-            nota = notas.filter(evaluacion=ev).first()
-            if nota:
-                resultado["notas"][trimestre].append({
-                    "dimension": ev.dimension,
-                    "descripcion":ev.descripcion,
-                    "nota": nota.nota
-                })
+        # 6. Hacemos la predicción del 3er trimestre
+        pred = model.predict([[n1, n2]])[0]
+        nota_trim3 = round(float(pred), 2)
 
-        for auto in autoevals:
-            resultado["autoevaluaciones"][auto.trimestre] = auto.nota
+        # 7. Cálculo del promedio final
+        promedio_final = round((n1 + n2 + nota_trim3) / 3, 2)
 
-        
-        return Response(resultado)
+        # 8. Evaluaciones
+        pasa_materia = promedio_final >= UMBRAL
+        aplazo_trim3 = nota_trim3 < UMBRAL
+
+        # 9. Devolvemos la respuesta
+        return Response({
+            "nota_trim1":            n1,
+            "nota_trim2":            n2,
+            "nota_predicha_trim3":   nota_trim3,
+            "promedio_final":        promedio_final,
+            "pasa":                  pasa_materia,
+            "aplazo_trim3":          aplazo_trim3
+        })
+

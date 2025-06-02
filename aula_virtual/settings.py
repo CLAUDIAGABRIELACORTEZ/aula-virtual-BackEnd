@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'teachers',
     'core',
     'notas',
+    'django_seed',
 ]
 
 MIDDLEWARE = [
