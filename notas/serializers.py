@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import EvaluacionActividad, NotaActividad, Autoevaluacion
-from accounts.models import CustomUser
-
+# from accounts.models import CustomUser
+from rest_framework import serializers
 
 class EvaluacionActividadSerializer(serializers.ModelSerializer):
     class Meta:
@@ -29,3 +29,9 @@ class AutoevaluacionSerializer(serializers.ModelSerializer):
 
     def get_alumno_nombre(self, obj):
         return f"{obj.alumno.nombre} {obj.alumno.apellido}"
+    
+    # nueva implementacion para la parte de prediccion 
+class PrediccionInputSerializer(serializers.Serializer):
+    alumno = serializers.IntegerField()
+    curso  = serializers.IntegerField()
+    materia = serializers.IntegerField()
