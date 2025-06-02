@@ -106,8 +106,6 @@ class AutoevaluacionViewSet(viewsets.ModelViewSet):
 
         return super().create(request, *args, **kwargs)
 
-
-
 class ListaAlumnosMateriaView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsDocente]
 
@@ -184,8 +182,6 @@ class CuadriculaNotasView(APIView):
         return Response(resultado)
 
 
-
-
 #  resumen de notas 
 class ResumenNotasView(APIView):
     permission_classes = [IsAuthenticated, IsDocente]
@@ -248,3 +244,58 @@ class ResumenNotasView(APIView):
             resultados.append(resumen)
 
         return Response(resultados)
+
+# Modificaciones de Rodrigo
+class NotasPorMateriaAlumnoView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, materia_id):
+        alumno = request.user
+        if (alumno.rol != 'alumno'):
+            return Response({'error: No Autorizado'}, status=403)
+        
+        try:
+            curso = alumno.alumno.curso
+        except:
+            return Response({'error: No tienes curso asignado'}, status=400)
+        
+        evaluaciones = EvaluacionActividad.objects.filter(
+            curso = curso,
+            materia_id = materia_id
+        ).order_by('trimestre', 'dimension', 'fecha')
+
+        notas = NotaActividad.objects.filter(
+            alumno = alumno,
+            evaluacion_in = evaluaciones
+        )
+
+        autoevals = Autoevaluacion.objects.filter(
+            alumno = alumno, 
+            curso = curso,
+            materia_id = materia_id
+        )
+
+        resultado = {
+            "materia": evaluaciones.first().materia.nombre if evaluaciones.exists() else "",
+            "notas": {},
+            "autoevaluaciones": {}
+        }
+
+        for ev in evaluaciones:
+            trimestre = ev.trimestre
+            if trimestre not in resultado["notas"]:
+                resultado["notas"][trimestre]
+
+            nota = notas.filter(evaluacion=ev).first()
+            if nota:
+                resultado["notas"][trimestre].append({
+                    "dimension": ev.dimension,
+                    "descripcion":ev.descripcion,
+                    "nota": nota.nota
+                })
+
+        for auto in autoevals:
+            resultado["autoevaluaciones"][auto.trimestre] = auto.nota
+
+        
+        return Response(resultado)
