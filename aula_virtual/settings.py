@@ -17,7 +17,7 @@ load_dotenv(dotenv_path=BASE_DIR / ".env")  # 👈 Forzado
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-xq3yfb!%jy4(*@ms3ze_+85qx0ix#$3cuvc5w(6l_teksx#kf')
 
 DEBUG = True
-ALLOWED_HOSTS = ['192.168.0.4', 'localhost', '127.0.0.1', '192.168.0.2']
+ALLOWED_HOSTS = ['192.168.0.4', 'localhost', '127.0.0.1', '192.168.0.2', '192.168.114.96']
 
 # Application definition
 INSTALLED_APPS = [

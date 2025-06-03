@@ -9,7 +9,8 @@ from rest_framework.permissions import IsAuthenticated
 from accounts.permissions import IsDocente
 from .models import CursoMateriaDocente
 from .serializers import CursoMateriaDocenteSerializer,CursoMateriaDocenteDetailSerializer
-from rest_framework import viewsets
+#from rest_framework import viewsets
+from django.core.exceptions import ValidationError
 from accounts.permissions import IsDirector  # solo director puede asignar
 from core.serializers import CursoMateriaDetailSerializer
 from .serializers import AsignacionDocenteSerializer

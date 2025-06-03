@@ -40,9 +40,14 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         data['username'] = self.user.username
         data['email'] = self.user.email
 
+        #data['user_id'] = self.user.id
+
         # Si es alumno, agregar curso y materias
         try:
             alumno = Alumno.objects.select_related('curso').get(user=self.user)
+
+            data['alumno_id'] = alumno.id #id del alumno
+
             data['curso'] = {
                 "id": alumno.curso.id,
                 "nombre": alumno.curso.nombre,
