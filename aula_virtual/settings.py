@@ -8,6 +8,7 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 from corsheaders.defaults import default_headers
+import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(dotenv_path=BASE_DIR / ".env")  # 👈 Forzado
@@ -16,8 +17,17 @@ load_dotenv(dotenv_path=BASE_DIR / ".env")  # 👈 Forzado
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-xq3yfb!%jy4(*@ms3ze_+85qx0ix#$3cuvc5w(6l_teksx#kf')
 
-DEBUG = True
-ALLOWED_HOSTS = ['192.168.0.4', 'localhost', '127.0.0.1', '192.168.0.2', '192.168.114.96']
+#DEBUG = True --> para pruebas locales
+DEBUG = os.getenv("DEBUG", "False") == "True" #--> producción
+ALLOWED_HOSTS = [
+    '192.168.0.4', 
+    'localhost', 
+    '127.0.0.1', 
+    '192.168.0.2', 
+    '192.168.114.96', 
+    '192.168.0.13',
+    '.onrender.com', #para producción
+]
 
 # Application definition
 INSTALLED_APPS = [
@@ -79,17 +89,21 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'aula_virtual.wsgi.application'
 
-# Base de datos PostgreSQL (Render)
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST'),
-        'PORT': os.getenv('DB_PORT'),
-    }
+    'default': dj_database_url.config(conn_max_age=600)
 }
+
+# Base de datos PostgreSQL (Render)
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': os.getenv('DB_NAME'),
+#         'USER': os.getenv('DB_USER'),
+#         'PASSWORD': os.getenv('DB_PASSWORD'),
+#         'HOST': os.getenv('DB_HOST'),
+#         'PORT': os.getenv('DB_PORT'),
+#     }
+# }
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
@@ -104,6 +118,7 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles') #para producción
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

@@ -1,12 +1,15 @@
 asgiref==3.8.1
+dj-database-url==3.0.0
 Django==5.2.1
 django-cors-headers==4.7.0
 django-seed @ git+https://github.com/Brobin/django-seed.git@077398a2c2a533b07517b121b34713a2e43bcc63
 djangorestframework==3.16.0
 djangorestframework_simplejwt==5.5.0
 Faker==37.3.0
+gunicorn==23.0.0
 joblib==1.5.1
 numpy==2.2.6
+packaging==25.0
 pandas==2.2.3
 psycopg2-binary==2.9.10
 PyJWT==2.9.0
@@ -20,4 +23,5 @@ six==1.17.0
 sqlparse==0.5.3
 threadpoolctl==3.6.0
 toposort==1.10
+typing_extensions==4.14.0
 tzdata==2025.2
